@@ -441,21 +441,25 @@ namespace CNTK
         // Lets add a null entry in the map for this variable, to break infinite recursion when processing recurrent graphs
         variableToNodeMap[variable] = nullptr;
 
-        std::shared_ptr<ComputationNode<ElementType>> computationNodePtr;
+        std::shared_ptr<ComputationNodeBase> computationNodePtr;
         auto internalNodeName = CNTKInternalNodeNameFromUidAndName(variable.Uid(), variable.Name(), useMangledNamesForComputationNodes);
         if (variable.IsParameter() || variable.IsConstant())
         {
             if (variable.Shape().HasInferredDimension())
                 InvalidArgument("Parameter or Constant '%S' with unresolved shape %S found when compiling the Function graph.", variable.AsString().c_str(), variable.Shape().AsString().c_str());
 
-            computationNodePtr = builder.CreateLearnableParameter(internalNodeName, AsTensorShape(variable.Shape()));
+            if (std::is_same<ElementType, half>::value)
+                computationNodePtr = builder.CreateLearnableParameter<float>(internalNodeName, AsTensorShape(variable.Shape()));
+            else
+                computationNodePtr = builder.CreateLearnableParameter<ElementType>(internalNodeName, AsTensorShape(variable.Shape()));
+
             network->InitLearnableParameters(computationNodePtr, L"fixedValue", 0); // must call this to follow protocol; can overwrite later
             if (!variable.NeedsGradient() || (inputsToExcludeGradientsFor.find(variable) != inputsToExcludeGradientsFor.end()))
                 computationNodePtr->SetLearningRateMultiplier(0.0);
 
             NDArrayViewPtr value = variable.IsConstant() ? Constant(variable).Value() : Parameter(variable).Value();
             std::shared_ptr<const Matrix<ElementType>> valueMatrix = variable.IsConstant() ? value->GetMatrix<ElementType>() : value->GetWritableMatrix<ElementType>();
-
+/*
             if (variable.IsParameter() || (valueMatrix->GetDeviceId() == network->GetDeviceId()))
                 computationNodePtr->Value() = valueMatrix->AsReference();
             else // Constant: if initialized data lives on wrong device, make a copy to the right one (copy is OK since it's constant)
@@ -469,6 +473,7 @@ namespace CNTK
                 clonedMatrix.AssignValuesOf(*valueMatrix);
                 computationNodePtr->Value() = std::move(clonedMatrix);
             }
+*/
         }
         else if (variable.IsInput())
         {
@@ -515,7 +520,10 @@ namespace CNTK
             }
             else
             {
-                computationNodePtr = builder.CreateLearnableParameter(internalNodeName, AsTensorShape(fullyDefinedArgumentVar.Shape()));
+                if (std::is_same<ElementType, half>::value)
+                    computationNodePtr = builder.CreateLearnableParameter<float>(internalNodeName, AsTensorShape(fullyDefinedArgumentVar.Shape()));
+                else
+                    computationNodePtr = builder.CreateLearnableParameter<ElementType>(internalNodeName, AsTensorShape(fullyDefinedArgumentVar.Shape()));
                 network->InitLearnableParameters(computationNodePtr, L"fixedValue", 0); // must call this to follow protocol; can overwrite later
                 if (!variable.NeedsGradient() || (inputsToExcludeGradientsFor.find(variable) != inputsToExcludeGradientsFor.end()))
                     computationNodePtr->SetLearningRateMultiplier(0.0);

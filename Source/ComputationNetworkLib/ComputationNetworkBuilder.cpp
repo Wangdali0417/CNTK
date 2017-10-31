@@ -224,9 +224,10 @@ shared_ptr<ComputationNode<ElemType>> ComputationNetworkBuilder<ElemType>::Creat
 
 // this is used in V2
 template <class ElemType>
-shared_ptr<ComputationNode<ElemType>> ComputationNetworkBuilder<ElemType>::CreateLearnableParameter(const std::wstring& paramName, const TensorShape& tensorShape)
+template <class ElemType2>
+shared_ptr<ComputationNode<ElemType2>> ComputationNetworkBuilder<ElemType>::CreateLearnableParameter(const std::wstring& paramName, const TensorShape& tensorShape)
 {
-    return net.AddNodeToNetWithElemType(New<LearnableParameter<ElemType>>(net.GetDeviceId(), paramName, tensorShape));
+    return net.AddNodeToNetWithElemType(New<LearnableParameter<ElemType2>>(net.GetDeviceId(), paramName, tensorShape));
 }
 
 // TODO: change these to take an actual object instead of a name for dynamicAxis
@@ -952,4 +953,24 @@ template class ComputationNetworkBuilder<float>;
 template class ComputationNetworkBuilder<double>;
 template class ComputationNetworkBuilder<half>;
 
+// specialize CreateLearnableParameter
+template <>
+template <>
+shared_ptr<ComputationNode<half>> ComputationNetworkBuilder<half>::CreateLearnableParameter<half>(const std::wstring& paramName, const TensorShape& tensorShape)
+{
+    RuntimeError("ComputationNetworkBuilder<half>::CreateLearnableParameter<half>: only float parameter is allowed");
+    return nullptr;
+}
+
+template <>
+template <>
+shared_ptr<ComputationNode<float>> ComputationNetworkBuilder<double>::CreateLearnableParameter<float>(const std::wstring& paramName, const TensorShape& tensorShape)
+{
+    RuntimeError("ComputationNetworkBuilder<double>::CreateLearnableParameter<float>: only double parameter is allowed");
+    return nullptr;
+}
+
+template shared_ptr<ComputationNode<float>> ComputationNetworkBuilder<half>::CreateLearnableParameter<float>(const std::wstring& paramName, const TensorShape& tensorShape);
+template shared_ptr<ComputationNode<float>> ComputationNetworkBuilder<float>::CreateLearnableParameter<float>(const std::wstring& paramName, const TensorShape& tensorShape);
+template shared_ptr<ComputationNode<double>> ComputationNetworkBuilder<double>::CreateLearnableParameter<double>(const std::wstring& paramName, const TensorShape& tensorShape);
 }}}

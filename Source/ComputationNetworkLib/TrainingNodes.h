@@ -2387,7 +2387,7 @@ private:
 // * disableRegularization is a Boolean flag that specifies this batch normalization node turns off regularization or not.
 // * imageLayout is the image layout. Only cudnn is supported at present.
 // -----------------------------------------------------------------------
-template <class ElemType>
+template <class ElemType, class ElemType2 = ElemType>
 class BatchNormalizationNode : public ComputationNodeNonLooping<ElemType>, public IFreezable,
     public IdentityTransformerNodeOnOneInput<0>
 {

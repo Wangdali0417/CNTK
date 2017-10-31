@@ -383,6 +383,10 @@ class Parameter(VariableMixin, TensorOpsMixin, cntk_py.Parameter):
                 shape = ()
 
         dtype = get_default_override(Parameter, dtype=dtype)
+
+        if dtype in [np.float16, 'float16']:
+            dtype = np.float32 # for 16-bit network, use 32-bit parameter
+
         if dtype is not None:
             if isinstance(init, np.ndarray) and dtype != init.dtype:
                 init = np.array(init, dtype=dtype)
